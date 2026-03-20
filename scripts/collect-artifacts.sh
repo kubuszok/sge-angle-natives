@@ -63,8 +63,9 @@ case "$PLATFORM" in
         cp "$BUILD_DIR/libGLESv2_angle.so" "$STAGING_DIR/lib/libGLESv2.so"
         ;;
     ios)
-        cp "$BUILD_DIR/libEGL.a" "$STAGING_DIR/lib/"
-        cp "$BUILD_DIR/libGLESv2.a" "$STAGING_DIR/lib/"
+        # iOS ANGLE outputs have _static suffix
+        cp "$BUILD_DIR/obj/libEGL_static.a" "$STAGING_DIR/lib/libEGL.a"
+        cp "$BUILD_DIR/obj/libGLESv2_static.a" "$STAGING_DIR/lib/libGLESv2.a"
         ;;
     *)
         echo "Error: Unknown platform '$PLATFORM' from target '$TARGET'"
