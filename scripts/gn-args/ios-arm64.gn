@@ -5,4 +5,5 @@ angle_build_all = false
 angle_has_frame_capture = false
 target_os = "ios"
 target_cpu = "arm64"
+target_environment = "device"
 angle_enable_metal = true

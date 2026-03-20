@@ -15,77 +15,50 @@ env:
   ANGLE_BRANCH: ${{ github.event.inputs.angle_branch || 'chromium/7151' }}
 
 jobs:
-  build-desktop:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: macos-14
-            targets: macos-aarch64 macos-x86_64
-            artifact-name: macos
-          - runner: ubuntu-22.04
-            targets: linux-x86_64 linux-aarch64
-            artifact-name: linux
-          # Windows cross-compiled from Linux (depot_tools CIPD doesn't work on GHA Windows)
-          - runner: ubuntu-22.04
-            targets: windows-x86_64 windows-aarch64
-            artifact-name: windows
-    runs-on: ${{ matrix.runner }}
+  build-macos:
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
 
       - name: Install depot_tools
-        shell: bash
         run: |
           git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
           echo "$PWD/depot_tools" >> $GITHUB_PATH
 
       - name: Fetch ANGLE source
-        shell: bash
         run: |
           git clone https://chromium.googlesource.com/angle/angle.git angle/src
           cd angle/src
           git fetch origin $ANGLE_BRANCH
           git checkout FETCH_HEAD
-          # Create .gclient file for gclient sync
           cd ..
           cat > .gclient <<'GCLIENT'
-          solutions = [
-            {
-              "name": "src",
-              "url": "https://chromium.googlesource.com/angle/angle.git",
-              "deps_file": "DEPS",
-              "managed": False,
-              "custom_vars": {},
-            },
-          ]
+          solutions = [{ "name": "src", "url": "https://chromium.googlesource.com/angle/angle.git", "deps_file": "DEPS", "managed": False, "custom_vars": {} }]
           GCLIENT
           cd src
           gclient sync --no-history
 
-      - name: Build targets
-        shell: bash
+      - name: Build macOS targets
         run: |
-          for target in ${{ matrix.targets }}; do
+          for target in macos-aarch64 macos-x86_64; do
             echo "=== Building $target ==="
             bash scripts/build-angle.sh --target "$target" --angle-dir angle/src
           done
 
       - name: Collect artifacts
-        shell: bash
         run: |
           mkdir -p artifacts
-          for target in ${{ matrix.targets }}; do
+          for target in macos-aarch64 macos-x86_64; do
             bash scripts/collect-artifacts.sh --target "$target" --angle-dir angle/src --output-dir artifacts
           done
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: angle-${{ matrix.artifact-name }}
+          name: angle-macos
           path: artifacts/angle-*.tar.gz
 
-  build-android:
+  build-linux:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -103,15 +76,109 @@ jobs:
           git checkout FETCH_HEAD
           cd ..
           cat > .gclient <<'GCLIENT'
-          solutions = [
-            {
-              "name": "src",
-              "url": "https://chromium.googlesource.com/angle/angle.git",
-              "deps_file": "DEPS",
-              "managed": False,
-              "custom_vars": {},
-            },
-          ]
+          solutions = [{ "name": "src", "url": "https://chromium.googlesource.com/angle/angle.git", "deps_file": "DEPS", "managed": False, "custom_vars": {} }]
+          GCLIENT
+          cd src
+          gclient sync --no-history
+
+      - name: Install arm64 sysroot for cross-compilation
+        run: |
+          cd angle/src
+          python3 build/linux/sysroot_scripts/install-sysroot.py --arch=arm64
+
+      - name: Build Linux targets
+        run: |
+          for target in linux-x86_64 linux-aarch64; do
+            echo "=== Building $target ==="
+            bash scripts/build-angle.sh --target "$target" --angle-dir angle/src
+          done
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p artifacts
+          for target in linux-x86_64 linux-aarch64; do
+            bash scripts/collect-artifacts.sh --target "$target" --angle-dir angle/src --output-dir artifacts
+          done
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: angle-linux
+          path: artifacts/angle-*.tar.gz
+
+  build-windows:
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install depot_tools
+        run: |
+          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+          echo "$PWD/depot_tools" >> $GITHUB_PATH
+          # Windows needs cipd bootstrapped explicitly
+          export DEPOT_TOOLS_WIN_TOOLCHAIN=0
+          echo "DEPOT_TOOLS_WIN_TOOLCHAIN=0" >> $GITHUB_ENV
+
+      - name: Fetch ANGLE source
+        env:
+          DEPOT_TOOLS_WIN_TOOLCHAIN: '0'
+        run: |
+          git clone https://chromium.googlesource.com/angle/angle.git angle/src
+          cd angle/src
+          git fetch origin $ANGLE_BRANCH
+          git checkout FETCH_HEAD
+          cd ..
+          cat > .gclient <<'GCLIENT'
+          solutions = [{ "name": "src", "url": "https://chromium.googlesource.com/angle/angle.git", "deps_file": "DEPS", "managed": False, "custom_vars": {} }]
+          GCLIENT
+          cd src
+          gclient sync --no-history
+
+      - name: Build Windows targets
+        env:
+          DEPOT_TOOLS_WIN_TOOLCHAIN: '0'
+        run: |
+          for target in windows-x86_64 windows-aarch64; do
+            echo "=== Building $target ==="
+            bash scripts/build-angle.sh --target "$target" --angle-dir angle/src
+          done
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p artifacts
+          for target in windows-x86_64 windows-aarch64; do
+            bash scripts/collect-artifacts.sh --target "$target" --angle-dir angle/src --output-dir artifacts
+          done
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: angle-windows
+          path: artifacts/angle-*.tar.gz
+
+  build-android:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install depot_tools
+        run: |
+          git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+          echo "$PWD/depot_tools" >> $GITHUB_PATH
+
+      - name: Fetch ANGLE source (with Android deps)
+        run: |
+          git clone https://chromium.googlesource.com/angle/angle.git angle/src
+          cd angle/src
+          git fetch origin $ANGLE_BRANCH
+          git checkout FETCH_HEAD
+          cd ..
+          cat > .gclient <<'GCLIENT'
+          solutions = [{ "name": "src", "url": "https://chromium.googlesource.com/angle/angle.git", "deps_file": "DEPS", "managed": False, "custom_vars": { "checkout_android": True } }]
+          target_os = ["android"]
           GCLIENT
           cd src
           gclient sync --no-history
@@ -154,15 +221,7 @@ jobs:
           git checkout FETCH_HEAD
           cd ..
           cat > .gclient <<'GCLIENT'
-          solutions = [
-            {
-              "name": "src",
-              "url": "https://chromium.googlesource.com/angle/angle.git",
-              "deps_file": "DEPS",
-              "managed": False,
-              "custom_vars": {},
-            },
-          ]
+          solutions = [{ "name": "src", "url": "https://chromium.googlesource.com/angle/angle.git", "deps_file": "DEPS", "managed": False, "custom_vars": {} }]
           GCLIENT
           cd src
           gclient sync --no-history
@@ -182,7 +241,7 @@ jobs:
           path: artifacts/angle-*.tar.gz
 
   release:
-    needs: [build-desktop, build-android, build-ios]
+    needs: [build-macos, build-linux, build-windows, build-android, build-ios]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
