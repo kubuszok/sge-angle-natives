@@ -1,6 +1,6 @@
 # sge-angle-natives
 
-Pre-built [ANGLE](https://chromium.googlesource.com/angle/angle) (Almost Native Graphics Layer Engine) binaries for the [SGE](https://github.com/ArcticLampyrid/sge-porting) (Scala Game Engine) project.
+Pre-built [ANGLE](https://chromium.googlesource.com/angle/angle) (Almost Native Graphics Layer Engine) binaries for the SGE (Scala Game Engine) project.
 
 ANGLE translates OpenGL ES calls to the platform's native graphics API (Metal on macOS/iOS, Vulkan on Linux, D3D11/Vulkan on Windows, native on Android), providing a consistent GL ES implementation across all targets.
 
