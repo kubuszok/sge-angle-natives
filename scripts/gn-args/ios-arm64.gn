@@ -8,3 +8,4 @@ target_cpu = "arm64"
 target_environment = "device"
 angle_enable_metal = true
 ios_enable_code_signing = false
+ios_code_signing_identity = "-"

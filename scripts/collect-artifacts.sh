@@ -58,8 +58,9 @@ case "$PLATFORM" in
         cp "$BUILD_DIR/libGLESv2.dll.lib" "$STAGING_DIR/lib/"
         ;;
     android)
-        cp "$BUILD_DIR/libEGL.so" "$STAGING_DIR/lib/"
-        cp "$BUILD_DIR/libGLESv2.so" "$STAGING_DIR/lib/"
+        # Android ANGLE outputs have _angle suffix
+        cp "$BUILD_DIR/libEGL_angle.so" "$STAGING_DIR/lib/libEGL.so"
+        cp "$BUILD_DIR/libGLESv2_angle.so" "$STAGING_DIR/lib/libGLESv2.so"
         ;;
     ios)
         cp "$BUILD_DIR/libEGL.a" "$STAGING_DIR/lib/"
