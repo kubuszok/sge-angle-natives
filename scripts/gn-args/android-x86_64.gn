@@ -1,0 +1,7 @@
+is_component_build = false
+is_debug = false
+angle_enable_wgpu = false
+angle_build_all = false
+angle_has_frame_capture = false
+target_os = "android"
+target_cpu = "x64"

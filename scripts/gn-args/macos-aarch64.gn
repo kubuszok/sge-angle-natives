@@ -1,0 +1,9 @@
+is_component_build = false
+is_debug = false
+angle_enable_wgpu = false
+angle_build_all = false
+angle_has_frame_capture = false
+target_os = "mac"
+target_cpu = "arm64"
+mac_deployment_target = "11.0"
+angle_enable_metal = true

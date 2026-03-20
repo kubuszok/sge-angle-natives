@@ -1,0 +1,6 @@
+out/
+depot_tools/
+angle/
+*.tar.gz
+*.zip
+build/
