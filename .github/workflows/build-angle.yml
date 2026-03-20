@@ -22,10 +22,14 @@ jobs:
         include:
           - runner: macos-14
             targets: macos-aarch64 macos-x86_64
+            artifact-name: macos
           - runner: ubuntu-22.04
             targets: linux-x86_64 linux-aarch64
-          - runner: windows-2022
+            artifact-name: linux
+          # Windows cross-compiled from Linux (depot_tools CIPD doesn't work on GHA Windows)
+          - runner: ubuntu-22.04
             targets: windows-x86_64 windows-aarch64
+            artifact-name: windows
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
@@ -39,11 +43,25 @@ jobs:
       - name: Fetch ANGLE source
         shell: bash
         run: |
-          mkdir angle && cd angle
-          fetch --no-history angle
+          git clone https://chromium.googlesource.com/angle/angle.git angle/src
+          cd angle/src
+          git fetch origin $ANGLE_BRANCH
+          git checkout FETCH_HEAD
+          # Create .gclient file for gclient sync
+          cd ..
+          cat > .gclient <<'GCLIENT'
+          solutions = [
+            {
+              "name": "src",
+              "url": "https://chromium.googlesource.com/angle/angle.git",
+              "deps_file": "DEPS",
+              "managed": False,
+              "custom_vars": {},
+            },
+          ]
+          GCLIENT
           cd src
-          git checkout $ANGLE_BRANCH
-          gclient sync
+          gclient sync --no-history
 
       - name: Build targets
         shell: bash
@@ -64,7 +82,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: angle-${{ matrix.runner }}
+          name: angle-${{ matrix.artifact-name }}
           path: artifacts/angle-*.tar.gz
 
   build-android:
@@ -79,11 +97,24 @@ jobs:
 
       - name: Fetch ANGLE source
         run: |
-          mkdir angle && cd angle
-          fetch --no-history angle
+          git clone https://chromium.googlesource.com/angle/angle.git angle/src
+          cd angle/src
+          git fetch origin $ANGLE_BRANCH
+          git checkout FETCH_HEAD
+          cd ..
+          cat > .gclient <<'GCLIENT'
+          solutions = [
+            {
+              "name": "src",
+              "url": "https://chromium.googlesource.com/angle/angle.git",
+              "deps_file": "DEPS",
+              "managed": False,
+              "custom_vars": {},
+            },
+          ]
+          GCLIENT
           cd src
-          git checkout $ANGLE_BRANCH
-          gclient sync
+          gclient sync --no-history
 
       - name: Build Android targets
         run: |
@@ -117,11 +148,24 @@ jobs:
 
       - name: Fetch ANGLE source
         run: |
-          mkdir angle && cd angle
-          fetch --no-history angle
+          git clone https://chromium.googlesource.com/angle/angle.git angle/src
+          cd angle/src
+          git fetch origin $ANGLE_BRANCH
+          git checkout FETCH_HEAD
+          cd ..
+          cat > .gclient <<'GCLIENT'
+          solutions = [
+            {
+              "name": "src",
+              "url": "https://chromium.googlesource.com/angle/angle.git",
+              "deps_file": "DEPS",
+              "managed": False,
+              "custom_vars": {},
+            },
+          ]
+          GCLIENT
           cd src
-          git checkout $ANGLE_BRANCH
-          gclient sync
+          gclient sync --no-history
 
       - name: Build iOS
         run: bash scripts/build-angle.sh --target ios-arm64 --angle-dir angle/src
